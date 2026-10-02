@@ -1,24 +1,61 @@
-# React + Vite
+# Blake's Bakes
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A small baking journal built with React, Vite, React-Bootstrap, and Bootstrap. Browse baking projects, search by name or notes, filter by bake type, open a post for its full recipe notes, and add a new bake to the journal.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Frontend:** React + Vite + React-Bootstrap / Bootstrap
+- **Backend:** Node.js + Express
+- **Database:** PostgreSQL (`pg`)
 
-## React Compiler
+## Run locally
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Install dependencies with `npm install`.
+2. Create a PostgreSQL database, for example `blakes_bakes`.
+3. Apply the schema and sample posts:
 
-## Expanding the Oxlint configuration
+   ```sh
+   psql -d blakes_bakes -f server/schema.sql
+   psql -d blakes_bakes -f server/seed.sql
+   ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+4. Copy `.env.example` to `.env` in the project root and set the local database URL:
 
-## Basic outline 
+   ```env
+   DATABASE_URL=postgresql://postgres:your-password@localhost:5432/blakes_bakes
+   PORT=3001
+   CLIENT_ORIGIN=http://localhost:5173
+   ```
 
-Blakes Bakes: a blog style website showcasing all of the different things I have baked over time. Helps me keep track of what Ive made and my thoughts on each thing. 
+   For a hosted PostgreSQL provider that requires TLS, set `PGSSL=true` (the server validates the TLS certificate).
 
-Outline: Blog style, each thing I bake will have its own post. Each post will have the recipe, pictures, improvement tips, and other thoughts. Scroll through the site to see snip-its of different posts. Click on them to access an expanded page. Search bar for finding specific recipes by name/description. Filtering menu for finding specific types of recipes. 
+5. Start the API and Vite in separate terminals:
 
-Database Schema: Post ID, name, date made, pictures, recipe source, recipe type, tips list, thoughts list, flavors list, enjoyment rating.
+   ```sh
+   npm run server
+   npm run dev
+   ```
+
+   Open the local URL printed by Vite. The API is available at `http://localhost:3001`; set `VITE_API_URL` in a root `.env` file if it runs elsewhere.
+
+## API
+
+- `GET /api/health` — checks the API and its PostgreSQL connection.
+- `GET /api/posts` — lists baking posts, newest first.
+- `POST /api/posts` — validates and creates a baking post; responds with `201 Created`, the post body, and a `Location` header.
+- `GET /api/posts/:id` — retrieves one post; responds with `404 Not Found` when it does not exist.
+- `PUT /api/posts/:id` — replaces all editable post fields. Omitted optional fields (`recipeSource`, `tips`, `thoughts`, and `flavors`) are reset to their empty values.
+- `PATCH /api/posts/:id` — updates only supplied editable fields.
+- `DELETE /api/posts/:id` — deletes a post and responds with `204 No Content`.
+
+Post IDs must be positive integers. Invalid JSON or post data returns `400 Bad Request`; a valid ID with no matching post or unknown API path returns `404 Not Found`. Unsupported methods return `405 Method Not Allowed` with an `Allow` header. Database/server failures return `500 Internal Server Error`. All request and response bodies use JSON, except for the empty `204` response.
+
+The database stores the project name, date, photo URL, recipe source, type, tips, thoughts, flavors, enjoyment rating, and short description. Tips, thoughts, and flavors are PostgreSQL `JSONB` arrays.
+
+## Next improvements
+
+- Add post editing and deletion, with confirmation before deleting.
+- Support uploading photos to object storage instead of relying on image URLs.
+- Store structured recipe ingredients and instructions so recipes are easier to scale, print, and follow.
+- Add pagination and database-backed search/filtering as the journal grows.
+- Add authentication before publishing a private journal to the internet.
